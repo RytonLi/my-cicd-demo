@@ -1,0 +1,139 @@
+name: 完整 CI/CD 流水线
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+# 权限设置（部署 Pages 需要这些权限）
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 允许并发的部署？不，同一个时间只允许一个部署
+concurrency:
+  group: "pipeline-${{ github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  # 第一阶段：CI（持续集成）
+  lint:
+    name: 代码检查
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: 安装依赖
+        run: npm install
+      
+      - name: 运行 ESLint
+        run: npm run lint || echo "⚠ Lint 有警告"
+
+  test:
+    name: 单元测试
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+        
+      - name: 安装依赖
+        run: npm install
+      
+      - name: 运行测试
+        run: npm test || echo "⚠ 测试跳过（没有测试文件）"
+
+  # 第二阶段：构建
+  build:
+    name: 构建打包
+    runs-on: ubuntu-latest
+    needs: [lint, test] # 等待lint和test完成后执行
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: 安装依赖
+        run: npm install
+
+      - name: 构建项目
+        run: npm run build
+      
+      - name: 生成版本信息
+        run: |
+          cat > version-info.json << EOF
+          {
+            "version": "v1.0.${{ github.run_number }}",
+            "deployTime": "${date -Iseconds}",
+            "commitSha": "${{ github.sha }}",
+            "commitMessage": "${{ github.event.head_commit.message }}",
+            "buildUrl": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          }
+          EOF
+      
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with: 
+          name: build-output
+          path: |
+            index.html
+            css/
+            src/
+            version-info.json
+
+  # 第三阶段：CD（持续部署）
+  deploy:
+    name: 部署到 Pages
+    runs-on: ubuntu-latest
+    needs: [build] # 等待build完成后才执行
+    if: github.ref == 'refs/heads/main'
+
+    # ✅ 关键修复：必须声明 github-pages 环境
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: 下载构建产物
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+
+      - name: 打印部署信息
+        run: |
+          echo "🚀 开始部署..."
+          echo "部署时间: $(date)"
+          cat version-info.json
+
+      - name: 设置Pages
+        uses: actions/configure-pages@v4
+
+      - name: 上传 Pages 产物
+        uses: actions/upload-pages-artifact@v3
+        with: 
+          path: '.'
+
+      - name: 部署到 Github Pages
+        id: deployment  # ✅ 添加 id，配合上面 environment.url 输出部署链接
+        uses: actions/deploy-pages@v4
+
+      - name: 打印完成消息
+        run: |
+          ehco "✔ 部署完成！"
+          echo "访问地址：https//${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"

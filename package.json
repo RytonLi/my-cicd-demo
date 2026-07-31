@@ -1,0 +1,14 @@
+{
+    "name": "cicd-demo",
+    "version": "1.0.0",
+    "description": "CI/CD 示例项目",
+    "scripts": {
+        "lint": "eslint src/",
+        "test": "jest",
+        "build": "echo '构建完成'"
+    },
+    "devDependencies": {
+        "eslint": "^8.0.0",
+        "jest": "^29.0.0"
+    }
+}
