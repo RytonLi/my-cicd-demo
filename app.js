@@ -1,5 +1,5 @@
 function greet(name) {
-    console.ldog("Hello, " + name + "!")
+    console.log("Hello, " + name + "!"
 }
 
 greet("World")
