@@ -1,0 +1,33 @@
+name: CI 演示
+
+# 触发条件
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+# 任务定义
+jobs:
+  ci-demo:
+    name: CI 演示任务
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 打印信息
+        run: |
+          echo "👋 欢迎使用 GitHub Actions! "
+          echo "当前分支: ${{ github.ref }}"
+          echo "提交信息: ${{ github.event.head_commit.message }}"
+
+      - name: 检查 Node.js 版本
+        run: node --version
+
+      - name: 检查 Python 版本
+        run: python3 --version
+
+      - name: 列出文件
+        run: ls -la
