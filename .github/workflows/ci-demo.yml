@@ -1,13 +1,11 @@
 name: CI 演示
 
-# 触发条件
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
 
-# 任务定义
 jobs:
   ci-demo:
     name: CI 演示任务
@@ -19,7 +17,7 @@ jobs:
 
       - name: 打印信息
         run: |
-          echo "👋 欢迎使用 GitHub Actions! "
+          echo "👋 欢迎使用 GitHub Actions!"
           echo "当前分支: ${{ github.ref }}"
           echo "提交信息: ${{ github.event.head_commit.message }}"
           echo "提交 SHA: ${{ github.sha }}"
@@ -27,29 +25,41 @@ jobs:
           echo "仓库: ${{ github.repository }}"
           echo "事件: ${{ github.event_name }}"
           echo "当前时间: $(date '+%Y-%m-%d %H:%M:%S')"
-      
-      - name: 检查 Node.js 版本
-        run: node --version
 
-      - name: 检查 Python 版本
-        run: python3 --version
+      - name: 检查系统预装工具版本
+        run: |
+          node --version
+          python3 --version
 
-      - name: 列出文件
-        run: ls -la
-      
-      - name: 当前项目文件
-        run: find . -type f
+      - name: 列出项目文件
+        run: |
+          ls -la
+          find . -type f -not -path './.git/*'
 
-      - name: 设置 Node.js
+      - name: 设置 Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-      
-      - name: 安装 ESLint
+          node-version: '24'
+
+      - name: 安装 ESLint 并创建配置
         run: |
-          npm install -g eslint
           npm init -y
-          npx eslint --init <<< 'y' || true
+          npm install -D eslint @eslint/js
+          # 直接生成非交互式的 ESLint Flat Config（兼容 ESLint v9+）
+          cat > eslint.config.mjs << 'EOF'
+          import js from '@eslint/js';
+
+          export default [
+            js.configs.recommended,
+            {
+              files: ['**/*.js'],
+              languageOptions: {
+                ecmaVersion: 2024,
+                sourceType: 'module',
+              },
+            },
+          ];
+          EOF
 
       - name: 运行 Lint
-        run: npx eslint app.js || echo "Lint 检查完成"
+        run: npx eslint app.js --no-error-on-unmatched-pattern || echo "⚠️ Lint 检查发现问题，但继续执行"
