@@ -22,7 +22,12 @@ jobs:
           echo "👋 欢迎使用 GitHub Actions! "
           echo "当前分支: ${{ github.ref }}"
           echo "提交信息: ${{ github.event.head_commit.message }}"
-
+          echo "提交 SHA: ${{ github.sha }}"
+          echo "触发者: ${{ github.actor }}"
+          echo "仓库: ${{ github.repository }}"
+          echo "事件: ${{ github.event_name }}"
+          echo "当前时间: $(date '+%Y-%m-%d %H:%M:%S')"
+      
       - name: 检查 Node.js 版本
         run: node --version
 
@@ -31,3 +36,20 @@ jobs:
 
       - name: 列出文件
         run: ls -la
+      
+      - name: 当前项目文件
+        run: find . -type f
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: 安装 ESLint
+        run: |
+          npm install -g eslint
+          npm init -y
+          npx eslint --init <<< 'y' || true
+
+      - name: 运行 Lint
+        run: npx eslint app.js || echo "Lint 检查完成"
