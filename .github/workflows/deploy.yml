@@ -20,6 +20,11 @@ jobs:
     name: 部署到 Pages
     runs-on: ubuntu-latest
 
+    # ✅ 关键修复：必须声明 github-pages 环境
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -45,4 +50,5 @@ jobs:
           path: '.'
 
       - name: 部署到 Github Pages
+        id: deployment  # ✅ 添加 id，配合上面 environment.url 输出部署链接
         uses: actions/deploy-pages@v4
