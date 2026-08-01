@@ -35,7 +35,8 @@ jobs:
         run: npm install
       
       - name: 运行 ESLint
-        run: npm run lint || echo "⚠ Lint 有警告"
+        run: npm run lint
+        continue-on-error: true
 
   test:
     name: 单元测试
@@ -53,7 +54,8 @@ jobs:
         run: npm install
       
       - name: 运行测试
-        run: npm test || echo "⚠ 测试跳过（没有测试文件）"
+        run: npm test
+        continue-on-error: true
 
   # 第二阶段：构建
   build:
@@ -76,13 +78,16 @@ jobs:
         run: npm run build
       
       - name: 生成版本信息
+        env:
+          # 将 commit message 放入环境变量，避免特殊字符(引号/换行)破坏 JSON 格式
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
-          cat > version-info.json << EOF
+          cat > version-info.json << 'EOF'
           {
             "version": "v1.0.${{ github.run_number }}",
-            "deployTime": "${date -Iseconds}",
+            "deployTime": "$(date -Iseconds)",
             "commitSha": "${{ github.sha }}",
-            "commitMessage": "${{ github.event.head_commit.message }}",
+            "commitMessage": "$COMMIT_MSG",
             "buildUrl": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           }
           EOF
