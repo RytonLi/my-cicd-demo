@@ -1,10 +1,58 @@
 name: 完整 CI/CD 流水线
 
+# 定义触发器
 on:
+  # 代码被推送时触发
   push:
-    branches: [ main ]
+    # 分支
+    # 直接写指定分支名：main、master
+    # 模糊匹配：release-*
+    # * vs ** ：git分支名默认以/分级，如feature/auth/oauth就是3级，*只匹配1级遇到/就停，**匹配任意级
+    # * ：可以匹配main、dev、releas-v1.0，匹配不了feature/login
+    branches:
+      - main
+      # ! 开头应用排除规则，可以将指定模式从已有集合中剔除，下列示例中，如果去掉 '**'，那么其实际上不具有任何作用
+      # - '**'
+      # - '!docs/**'
+    # 对直接应用排除的模式，直接使用
+    branches-ignore:
+      - 'docs/**'
+    # 标签，tags和branches只会命中其中一个
+    tags: 
+      - 'v*'
+    # 特定文件，匹配规则同上
+    # 限定文件的语义与分支、标签是与关系，也就是说只有当推送代码同时满足分支/标签、特定文件两个条件才会触发工作流
+    paths:
+      - 'src/**' # src 目录下的文件变化
+      - '*.json' # 根目录的json文件
+    # 忽略特定文件
+    paths-ignore:
+      - '**/*.md' # 忽略 Markdown 文件
+      - 'docs/**' # 忽略 docs 目录
+
+  # 当有人更新或创建PR时
   pull_request:
+    # 指定分支
     branches: [ main ]
+    # 指定事件类型，不写时默认以下三个事件
+    # opened：pr刚创建时
+    # synchronize：pr上有新提交时
+    # reopened：关闭pr重新打开时
+    # closed：pr关闭时
+    types: [opened, synchronize, reopened]
+    # 也支持paths等条件
+
+  # 定时条件
+  # schedule:
+  #  分钟 小时 日期 月份 星期几
+  #   - cron: '0 0 * * *'
+
+  # 在另一个工作流完成时
+  # workflow_run:
+  #   workflows: ["CI 流水线"]
+  #   types: [completed]
+  #   branches: [ main ]
+
   # 手动触发
   workflow_dispatch:
     # 定义输入控件
@@ -125,7 +173,10 @@ jobs:
     name: 部署到 Pages
     runs-on: ubuntu-latest
     needs: [build] # 等待build完成后才执行
-    if: github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, 'deploy')
+
+    # 通过if控制任务和步骤是否执行
+    # 设置该任务的执行条件
+    if: github.ref == 'refs/heads/main' || contains(github.event.head_commit.message, 'deploy')
 
     # ✅ 关键修复：必须声明 github-pages 环境
     environment:
